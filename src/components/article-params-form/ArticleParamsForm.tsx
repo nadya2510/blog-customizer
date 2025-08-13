@@ -14,23 +14,23 @@ import {
 	defaultArticleState,
 	ArticleStateType,
 } from 'src/constants/articleProps';
-import { useState } from 'react';
-
+import { useState, useRef } from 'react';
 import styles from './ArticleParamsForm.module.scss';
+import clsx from 'clsx';
+
+import { useOutsideClickClose } from './hooks/useOutsideClickClose';
+
 type ArticleParamsFormProps = {
-	onApply: (newStyle: ArticleStateType) => void;
-	onReset: () => void;
+	onApply: React.Dispatch<React.SetStateAction<ArticleStateType>>;
 };
 
 export const ArticleParamsForm = (props: ArticleParamsFormProps) => {
-	const { onApply, onReset } = props;
-	const [open, setOpen] = useState(false);
-	const openClass = open
-		? `${styles.container} ${styles.container_open}`
-		: `${styles.container}`;
+	const { onApply } = props;
 
-	const defaultState: ArticleStateType = defaultArticleState;
-	const [styleForm, setStyleForm] = useState(defaultState);
+	const [isOpen, setOpen] = useState<boolean>(false);
+
+	const [styleForm, setStyleForm] =
+		useState<ArticleStateType>(defaultArticleState);
 
 	const handleChange = (name: string, selected: OptionType) => {
 		setStyleForm({
@@ -39,26 +39,31 @@ export const ArticleParamsForm = (props: ArticleParamsFormProps) => {
 		});
 	};
 
-	const handleApplyClick = () => {
-		onApply(styleForm);
-		setOpen(!open);
-	};
+	const outsideAlerterRef = useOutsideClickClose(() => {
+		setOpen(false);
+	});
 
 	const handleResetClick = () => {
-		setStyleForm(defaultState);
-		onReset();
+		setStyleForm(defaultArticleState);
+		onApply(defaultArticleState);
+	};
+
+	const handleSubmit = (evt: React.SyntheticEvent) => {
+		evt.preventDefault();
+		onApply(styleForm);
+		setOpen(false);
 	};
 
 	return (
 		<>
-			<ArrowButton
-				isOpen={open}
-				onClick={() => {
-					setOpen(!open);
-				}}
-			/>
-			<aside className={openClass}>
-				<form className={styles.form}>
+			<ArrowButton isOpen={isOpen} onClick={() => setOpen(!isOpen)} />
+			<aside
+				ref={outsideAlerterRef}
+				className={clsx({
+					[styles.container]: true,
+					[styles.container_open]: isOpen,
+				})}>
+				<form className={styles.form} onSubmit={handleSubmit}>
 					<Text
 						children={<h2>Задайте параметры</h2>}
 						size={31}
@@ -118,12 +123,7 @@ export const ArticleParamsForm = (props: ArticleParamsFormProps) => {
 							type='clear'
 							onClick={handleResetClick}
 						/>
-						<Button
-							title='Применить'
-							htmlType='button'
-							type='apply'
-							onClick={handleApplyClick}
-						/>
+						<Button title='Применить' htmlType='submit' type='apply' />
 					</div>
 				</form>
 			</aside>
